@@ -42,6 +42,33 @@ def debug(debug_on=True):
     debugging = False
 
 
+def enableCExtensions(enabled=True):
+  """
+  By default, calculation of GLCM, GLRLM and GLSZM is done in C, using extension ``_cmatrices.py``
+
+  If an error occurs during loading of this extension, a warning is logged and the extension is disabled,
+  matrices are then calculated in python.
+  The C extension can be disabled by calling this function as ``enableCExtensions(False)``, which forces the calculation
+  of the matrices to full-python mode.
+
+  Re-enabling use of C implementation is also done by this function, but if the extension is not loaded correctly,
+  a warning is logged and matrix calculation is forced to full-python mode.
+  """
+  global _cMatsState, logger
+  if enabled:
+    if _cMatsState == 1:  # Extension loaded but not enabled
+      logger.info("Enabling C extensions")
+      _cMatsState = 2  # Enables matrix calculation in C
+    else:  # _cMatsState = 0; Extension not loaded correctly, do not enable matrix calculation in C and log warning
+      logger.warning("C Matrices not loaded correctly, cannot calculate matrices in C")
+  elif _cMatsState == 2:
+    logger.info("Disabling C extensions")
+    _cMatsState = 1
+
+
+def cMatsEnabled():
+  return _cMatsState == 2
+
 def getFeatureClasses():
   """
   Iterates over all modules of the radiomics package using pkgutil and subsequently imports those modules.
@@ -72,27 +99,6 @@ def getFeatureClasses():
   return _featureClasses
 
 
-def pythonMatrixCalculation(usePython=False):
-  """
-  By default, calculation of matrices is done in C, using extension ``_cmatrices.py``
-
-  If an error occurs during loading of this extension, a warning is logged and the extension is disabled,
-  matrices are then calculated in python.
-  Calculation in python can be forced by calling this function, specifying ``pyMatEnabled = True``
-
-  Re-enabling use of C implementation is also done by this function, but if extension is not loaded correctly,
-  a warning is logged and matrix calculation uses python.
-  """
-  global cMatsEnabled
-  if usePython:
-    cMatsEnabled = False
-  elif _cMatLoaded:
-    cMatsEnabled = True
-  else:
-    logger.warning("C Matrices not loaded correctly, cannot calculate matrices in C")
-    cMatsEnabled = False
-
-
 def getInputImageTypes():
   """
   Returns a list of possible input image types. This function finds the image types dynamically by matching the
@@ -120,20 +126,22 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 debug(False)  # force level=WARNING, in case logging default is set differently (issue 102)
 
-try:
-  import _cmatrices as cMatrices
-  import _cshape as cShape
-  cMatsEnabled = True
-  _cMatLoaded = True
-except Exception:
-  logger.warning("Error loading C Matrices, switching to python calculation\n%s", traceback.format_exc())
-  cMatrices = None
-  cShape = None
-  cMatsEnabled = False
-  _cMatLoaded = False
-
 _featureClasses = None
 _inputImages = None
+
+# Indicates status of C extensions: 0 = not loaded, 1 = loaded but not enabled, 2 = enabled
+_cMatsState = 0
+
+try:
+  logger.debug("Loading C extensions")
+  from radiomics import _cmatrices as cMatrices
+  from radiomics import _cshape as cShape
+  _cMatsState = 1
+  enableCExtensions()
+except Exception:
+  logger.warning("Error loading C extensions, switching to python calculation:\n%s", traceback.format_exc())
+  cMatrices = None  # set cMatrices to None to prevent an import error in the feature classes.
+  cShape = None
 
 from ._version import get_versions
 
