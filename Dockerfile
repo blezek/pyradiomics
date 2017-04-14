@@ -26,6 +26,13 @@ RUN /bin/bash -c "source activate python2 \
     && python -m pip install --no-cache-dir -r requirements.txt \
     && python setup.py install"
 
+# Make a global directory and link it to the work directory
+RUN mkdir /data
+
+# Trust the notebooks that we've installed
+USER jovyan
+RUN ln -s /data /home/jovyan/work/data
+RUN mkdir -p /home/jovyan/work/example_data/
 # Install sample data and notebooks
 ADD data/ /home/jovyan/work/example_data/
 ADD bin/Notebooks/RadiomicsExample.ipynb /home/jovyan/work/
@@ -34,14 +41,6 @@ ADD bin/Notebooks/FeatureVisualizationWithClustering.ipynb /home/jovyan/work/
 ADD bin/Notebooks/FilteringEffects.ipynb /home/jovyan/work/
 ADD bin/Params.yaml /home/jovyan/work/
 
-# Make a global directory and link it to the work directory
-RUN mkdir /data
-RUN ln -s /data /home/jovyan/work/data
-
-RUN chown -R jovyan:users /home/jovyan/work
-
-# Trust the notebooks that we've installed
-USER jovyan
 RUN jupyter trust /home/jovyan/work/*.ipynb
 
 # Run the notebooks

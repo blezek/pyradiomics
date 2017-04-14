@@ -75,7 +75,7 @@ Detailed installation instructions, as well as instructions for installing PyRad
 
 ### Docker
 
-PyRadiomics contains three "flavors" of [Dockers](https://www.docker.com/).  The first is a command line installation of the `pyradiomics` and `pyradiomicsbatch` command lines.  The second is a [Jupyter notebook](http://jupyter.org/) with PyRadiomics pre-installed with example Notebooks.  The third is a Ubuntu 16 based Docker for command line and interactive use. To build the Dockers:
+PyRadiomics published a [Dockers](https://www.docker.com/) based off a [Jupyter notebook](http://jupyter.org/). PyRadiomics is pre-installed with example Notebooks. To build the Docker:
 
     docker build -t radiomics/notebook .
     
@@ -88,6 +88,27 @@ or for a less secure notebook, skip the randomly generated token
     docker run --rm -it --publish 8888:8888 -v `pwd`:/data radiomics/notebook start-notebook.sh --NotebookApp.token=''
 
 and open the local webpage at http://localhost:8888/ with the current directory at http://localhost:8888/tree/data.
+
+The Docker ships with two command line applications to compute features.  Creative use of the Docker command line allows processing of image data in the local (host) directory:
+
+    docker run --rm -w $(pwd) -v $(pwd):$(pwd) radiomics/notebook pyradiomics data/brain1_image.nrrd data/brain1_label.nrrd
+    
+The `-w` argument sets the working directory inside the docker to `$(pwd)` (the current working directory), and `-v` maps the local directory into the same directory within the Docker.  Running the command from the `Pyradiomics` checkout produces this:
+
+    docker run --rm -w $(pwd) -v $(pwd):$(pwd) radiomics/notebook pyradiomics data/brain1_image.nrrd data/brain1_label.nrrd
+
+    # output ...
+    general_info_BoundingBox: (162, 84, 11, 47, 70, 7)
+    general_info_GeneralSettings: {'normalize': False, 'enableCExtensions': True, 'distances': [1], 'interpolator': 'sitkBSpline', 'additionalInfo': True, 'label': 1, 'normalizeScale': 1, 'padDistance': 5, 'force2Ddimension': 0, 'removeOutliers': None, 'minimumROISize': None, 'minimumROIDimensions': 1, 'resampledPixelSpacing': None, 'force2D': False}
+    general_info_ImageHash: 5c9ce3ca174f0f8324aa4d277e0fef82dc5ac566
+    general_info_ImageSpacing: (0.7812499999999999, 0.7812499999999999, 6.499999999999998)
+    general_info_InputImages: {'Original': {}}
+    general_info_MaskHash: 9dc2c3137b31fd872997d92c9a92d5178126d9d3
+    general_info_Version: 0+unknown
+    general_info_VolumeNum: 2
+    general_info_VoxelNum: 4137
+    original_shape_SurfaceArea: 6438.821603779402
+    # ...
 
 ### Usage
 
